@@ -14,7 +14,7 @@ public class DeathWall extends Sprite
 		
 		hitBox = new Rectangle(0, 0, 16, 64);
 		health = 24;
-		deathTrigger.add("player_bullet");
+		damageTrigger.add("player_bullet");
 	}
 	
 	public void draw()

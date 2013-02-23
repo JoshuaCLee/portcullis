@@ -1,0 +1,113 @@
+package main;
+
+import java.util.ArrayList;
+/**
+ * A geometric container that also handles collision detection
+ */
+public class Rectangle 
+{
+	private double x, y;
+	private ArrayList<Vector2d> vertices; // clockwise elements
+	private double width, height;
+	private double angle;
+	
+	public Rectangle()
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = 0;
+		this.height = 0;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+	}
+	
+	public Rectangle(double width, double height)
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = width;
+		this.height = height;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+		createVertices();
+	}
+	
+	public Rectangle(double x, double y, double width, double height)
+	{
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+		createVertices();
+	}
+	
+	public void createVertices()
+	{
+		vertices.clear();
+		if(angle >= 360)
+			angle %= 360;
+		else if(angle < 0)
+			angle += 360;
+		double theta = Math.atan2(height/2, width/2) - Math.toRadians(angle);
+		double radius = Math.hypot(width/2, height/2);
+		//System.out.println(theta);
+		Vector2d v1 = new Vector2d((width/2) + (-radius * Math.cos(theta) + (width/2)), 
+					               (height/2) + (-radius * Math.sin(theta) + (height/2)));
+		Vector2d v2 = new Vector2d((width/2) + (radius * Math.cos(theta) + (width/2)), 
+				                   (height/2) + (-radius * Math.sin(theta) + (height/2)));
+		Vector2d v3 = new Vector2d((width/2) + (radius * Math.cos(theta) + (width/2)), 
+				                   (height/2) + (radius * Math.sin(theta) + (height/2)));
+		Vector2d v4 = new Vector2d((width/2) + (-radius * Math.cos(theta) + (width/2)), 
+				                   (height/2) + (radius * Math.sin(theta) + (height/2)));
+		vertices.add(v1);
+		vertices.add(v2);
+		vertices.add(v3);
+		vertices.add(v4);
+	}
+	
+	public ArrayList<Vector2d> getVertices()
+	{
+		createVertices();
+		return vertices;
+	}
+	
+	public ArrayList<Line> getLines()
+	{
+		createVertices();
+		ArrayList<Line> lines = new ArrayList<Line>();
+		for(int i = 0; i < vertices.size(); i++)
+		{
+			if(i == vertices.size() - 1)
+				lines.add(new Line(vertices.get(i), vertices.get(0)));
+			else
+				lines.add(new Line(vertices.get(i), vertices.get(i+1)));
+		}
+		return lines;
+	}
+	
+	public double getAngle()
+	{
+		return angle;
+	}
+	
+	public void setLocation(double x, double y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setAngle(double angle)
+	{
+		this.angle = angle;
+	}
+	
+	public String toString()
+	{
+		String str = "Pos: (" + x + ", " + y + ") ";
+		for(int i = 0; i < vertices.size(); i++)
+			str += "V" + i + ": " + vertices.get(i).toString() + " ";
+		return str;
+	}
+}

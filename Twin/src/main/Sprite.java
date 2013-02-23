@@ -1,47 +1,29 @@
 package main;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Polygon;
-//import java.awt.Rectangle;
-import java.awt.Shape;
-import java.awt.Toolkit;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Area;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 //import org.newdawn.slick.opengl.Texture;
 //import org.newdawn.slick.opengl.TextureLoader;
 import static org.lwjgl.opengl.GL11.*;
-
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
 
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.newdawn.slick.opengl.TextureImpl;
 import org.newdawn.slick.geom.Rectangle;
 
+/**
+ * An object that handles its own on-screen graphical representation. It'll update itself when called upon by the main loop.
+ * It also handles higher order game behaviors out of the scope of the physics defined by the Entity class
+ */
 public class Sprite extends Entity
 {
 	protected Camera camera;
-	protected Toolkit toolkit;
-	protected Polygon bounds;
-	protected Area area;
 	protected Texture texture;
-	protected String name;
 	protected int score;
-	protected ArrayList<String> deathTrigger;
-	private ArrayList<Sprite> childSprites;
+	protected ArrayList<String> damageTrigger;
 	
-	protected Point screenPos; // position of the sprite translated according to the game camera's position
+	protected Vector2d screenPos; // position of the sprite translated according to the game camera's position
 	protected double screenAngle;
 	
 	protected int currentFrame, totalFrames;
@@ -50,13 +32,11 @@ public class Sprite extends Entity
 	protected int width, height, columns;
 	protected double scale;
 	
-	protected boolean vector;
 	protected boolean alive;
-	protected int currentState;
-	protected boolean screenLocked;
-	protected boolean screenWrapped;
-	protected boolean isMeshDrawn, fillVector;
-	protected Color drawColor;
+	protected int currentState; // POSSIBLE: define complex sprite states beyond 'alive' and 'dead'
+	protected boolean screenLocked; // FIXME
+	protected boolean screenWrapped; // FIXME
+	protected boolean isMeshDrawn;
 	protected boolean lookAtMouse;
 	
 	protected long shotTimer, shotDelay;
@@ -64,14 +44,12 @@ public class Sprite extends Entity
 	public Sprite(Camera camera)
 	{
 		this.camera = camera;
-		bounds = null;
 		texture = null;
 		name = "generic";
 		score = 0;
-		deathTrigger = new ArrayList<String>();
-		childSprites = new ArrayList<Sprite>();
+		damageTrigger = new ArrayList<String>();
 		
-		screenPos = new Point(0, 0);
+		screenPos = new Vector2d(0, 0);
 		screenAngle = 0;
 		
 		currentFrame = 0;
@@ -88,8 +66,6 @@ public class Sprite extends Entity
 		screenLocked = false;
 		screenWrapped = false;
 		isMeshDrawn = false;
-		fillVector = false;
-		drawColor = Color.RED;
 		lookAtMouse = false;
 		
 		shotTimer = 0;
@@ -142,7 +118,6 @@ public class Sprite extends Entity
 	
 	public void draw(double deltaTime)
 	{
-		//entity.g2d.drawImage(entity.getImage(), entity.at, entity.frame);
 		update(deltaTime);
 		// get the current frame
 		int frameX = (currentFrame % columns) * width;
@@ -159,7 +134,6 @@ public class Sprite extends Entity
 		
 		if(texture != null)
 		{
-			//glClear(GL_COLOR_BUFFER_BIT);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			
@@ -218,27 +192,17 @@ public class Sprite extends Entity
 		}
 	}
 	
-	public void drawImageBounds(Color c)
-	{
-		
-	}
-	
-	public void drawBounds(Color c, boolean fill)
-	{
-		
-	}
-	
 	public void collision(String s)
 	{
 		//double relativeVel = 
 		//double impulse = 1;
-		if(deathTrigger.contains(s))
+		if(damageTrigger.contains(s))
 		{	
 			alive = false;
 		}	
 	}
 	
-	public void collision(Sprite s)
+	public void collision(List returnObjects)
 	{
 		
 	}
@@ -247,18 +211,19 @@ public class Sprite extends Entity
 	{
 		if(lookAtMouse)
 		{
-			worldAngle = Math.toDegrees(Math.atan2(screenPos.y - (Mouse.getY() * -1 + Display.getHeight()), screenPos.x - Mouse.getX())) - 90;
+			angle = Math.toDegrees(Math.atan2(screenPos.y - (Mouse.getY() * -1 + Display.getHeight()), screenPos.x - Mouse.getX())) - 90;
 		}
 		
 		super.update(deltaTime);
 		
 		// update screen position
-		Point centerPos = new Point(camera.worldPos.x + Display.getWidth() / 2, camera.worldPos.y + Display.getHeight() / 2);
-		double radius = Math.hypot(worldPos.x - centerPos.x, worldPos.y - centerPos.y);
-		double theta = Math.atan2(worldPos.y - centerPos.y, worldPos.x - centerPos.x) - Math.toRadians(camera.worldAngle);
-		screenPos.x = (float) ((worldPos.x - camera.worldPos.x) + (z * radius * Math.cos(theta) - (worldPos.x - centerPos.x)));
-		screenPos.y = (float) ((worldPos.y - camera.worldPos.y) + (z * radius * Math.sin(theta) - (worldPos.y - centerPos.y)));
-		screenAngle = worldAngle - camera.worldAngle;
+		// the most important lines of the Sprite class
+		Point centerPos = new Point(camera.pos.x + Display.getWidth() / 2, camera.pos.y + Display.getHeight() / 2);
+		double radius = Math.hypot(pos.x - centerPos.x, pos.y - centerPos.y);
+		double theta = Math.atan2(pos.y - centerPos.y, pos.x - centerPos.x) - Math.toRadians(camera.angle);
+		screenPos.x = ((pos.x - camera.pos.x) + (z * radius * Math.cos(theta) - (pos.x - centerPos.x)));
+		screenPos.y = ((pos.y - camera.pos.y) + (z * radius * Math.sin(theta) - (pos.y - centerPos.y)));
+		screenAngle = angle - camera.angle;
 		
 		//update animation
 		if(totalFrames > 1)
@@ -280,88 +245,26 @@ public class Sprite extends Entity
 		}
 	}
 	
-	public ArrayList<Sprite> getChildSprites()
-	{
-		return childSprites;
-	}
-	
 	public double rotationVelocity() { return angleVel; }
 	public void setRotationVelocity(double rate) { angleVel = rate; }
 	
 	public int state() { return currentState; }
 	public void setState(int state) { currentState = state; }
 	
-	/*
-	public Rectangle getImageBounds() 
-	{ 
-		
-	}
-	*/
-	
-	public Polygon getVectorBounds()
-	{
-		if(bounds != null)
-		{	
-			int npoints = bounds.npoints;
-			int[] xpoints = new int[npoints];
-			int[] ypoints = new int[npoints];
-
-			for(int i = 0; i < npoints; i++)
-				xpoints[i] = bounds.xpoints[i];
-
-			for(int i = 0; i < npoints; i++)
-				ypoints[i] = bounds.ypoints[i];
-
-			for(int i = 0; i < npoints; i++)
-			{
-				xpoints[i] += screenPos.x;
-				ypoints[i] += screenPos.y;		
-			}
-
-			Polygon p;
-			p = new Polygon(xpoints, ypoints, npoints);
-			area = new Area(p);
-			xpoints = null;
-			ypoints = null;
-			return p;
-		}
-		
-		else
-		{
-			int npoints = 4;
-			int[] xpoints = {0, 40, 40,  0};
-			int[] ypoints = {0, 0,  40, 40};
-			
-			for(int i = 0; i < npoints; i++)
-			{
-				xpoints[i] += screenPos.x;
-				ypoints[i] += screenPos.y;		
-			}
-			Polygon p = new Polygon(xpoints, ypoints, npoints);
-			area = new Area(p);
-			return p;
-		}
-	}
-	
-	public void setBounds(Shape s)
-	{
-		this.bounds = (Polygon)s;
-	}
-	
-	public Point position() { return worldPos; }
-	public void setWorldPosition(Point pos) { this.worldPos = pos; }
-	public void setScreenPosition(Point pos) { this.screenPos = pos; }
-	public Point velocity() { return vel; }
-	public void setVelocity(Point vel) { this.vel = vel; }
+	public Vector2d position() { return pos; }
+	public void setWorldPosition(Vector2d pos) { this.pos = pos; }
+	public void setScreenPosition(Vector2d pos) { this.screenPos = pos; }
+	public Vector2d velocity() { return vel; }
+	public void setVelocity(Vector2d vel) { this.vel = vel; }
 	
 	public double getCenterX() 
 	{
-		return worldPos.x + width() / 2;
+		return pos.x + width() / 2;
 	}
 	
 	public double getCenterY()
 	{
-		return worldPos.y + height() / 2;
+		return pos.y + height() / 2;
 	}
 	
 	public Point center()
@@ -376,23 +279,8 @@ public class Sprite extends Entity
 	public void setScreenLock(boolean locked) { this.screenLocked = locked; }
 	public void setScreenWrap(boolean wrapped) { this.screenWrapped = wrapped; }
 	
-	//move angle indicates direction sprite is moving 
-	
-	//check for collision with a rectangular shape 
-	
-	//check for collision with another sprite 
-	
-	//check for collision with a point 
-	public boolean collidesWith(Point point) { return (getVectorBounds().contains(point.x, point.y)); } 
-	
-	private URL getURL(String filename) 
-	{ 
-		URL url = null; 
-		try 
-		{ 
-			url = this.getClass().getResource(filename); 
-		} 
-		catch (Exception e) { } 
-		return url; 
+	public String toString()
+	{
+		return name;
 	}
 }

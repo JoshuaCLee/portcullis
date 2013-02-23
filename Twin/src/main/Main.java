@@ -1,5 +1,5 @@
 package main;
-import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT; // so many imports
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_MODELVIEW;
@@ -61,8 +61,8 @@ public class Main
 	private int height = 720;
 	//private int width = 1920;
 	//private int height = 1080;
-	public long deltaTime;
-	private long fps;
+	public long deltaTime; // the amount of time that has passed since the last tick
+	private long fps;      // however many ticks (frames) happen per second
 	private int sleepDelay;
 	private int score;
 	
@@ -79,13 +79,9 @@ public class Main
 	private Sprite player;
 	private Sprite arena;
 	private Square testSquare;
-	private ArrayList<Sprite> sprites;
-	private ArrayList<Sprite> bullets;
 	private ArrayList<Sprite> bg;
-	//private ArrayList<Sprite> enemies;
-	//private ArrayList<Sprite> enemyBullets;
 	
-	private boolean leftPressed = false, rightPressed = false, upPressed = false, downPressed = false, oneShot = false;
+	private boolean oneShot = false;
 	private boolean paused;
 	private ArrayList<Button> buttons;
 	private long shotTimer;
@@ -133,7 +129,7 @@ public class Main
 		catch (LWJGLException e) { e.printStackTrace(); }
 		
 		camera = new Camera(width, height);
-		camera.worldPos = new Point(0, 0);
+		camera.pos = new Vector2d(0, 0);
 		
 		manager = SpriteManager.getInstance();
 		manager.setCamera(camera);
@@ -147,45 +143,44 @@ public class Main
 			{
 				Sprite s = new Sprite(camera);
 				s.load("images/background.png", manager.getLoader());
-				s.worldPos = new Point(i * s.width()*2, k * s.height()*2);
+				s.pos = new Vector2d(i * s.width()*2, k * s.height()*2);
+				s.setPhysicsMode(Entity.PHYSMODE_STATIC);
 				//s.scale = 1.5;
 				s.z = .5;
 				bg.add(s);
 			}
 		}
 		
-		sprites = new ArrayList<Sprite>();
-		
 		player = new Sprite(camera);
 		player.name = "player";
 		//player.isMeshDrawn = true;
-		player.worldPos = new Point(Display.getWidth()/2, Display.getHeight()/2);
-		player.worldAngle = 0;
-		player.mass = .5f;
+		player.pos = new Vector2d(Display.getWidth()/2, Display.getHeight()/2);
+		player.angle = 0;
+		player.mass = .5;
 		player.thrust = 1000;
 		player.lookAtMouse = true;
-		player.hitBox = new Rectangle((int)player.worldPos.x, (int)player.worldPos.y, 24, 24);
-		//player.hitBox.setBounds((int)player.worldPos.x, (int)player.worldPos.y, 24, 24);
-		player.load("images/watchdog.png", manager.getLoader());
-		player.deathTrigger.add("enemy");
-		player.deathTrigger.add("enemy_bullet");
+		player.hitBox = new Rectangle((int)player.pos.x, (int)player.pos.y, 24, 24);
+		player.setPhysicsMode(Entity.PHYSMODE_DYNAMIC);
+		player.load("images/keeper.png", manager.getLoader());
+		//player.damageTrigger.add("enemy");
+		//player.damageTrigger.add("enemy_bullet");
 		manager.addSprite(player);
 		
 		testSquare = new Square(camera, manager.getLoader());
-		testSquare.worldPos = new Point(200, 200);
+		testSquare.pos = new Vector2d(200, 200);
+		testSquare.friction = 3;
+		testSquare.setPhysicsMode(Entity.PHYSMODE_DYNAMIC);
 		manager.addSprite(testSquare);
 		
 		shotTimer = 0;
-		
-		bullets = new ArrayList<Sprite>();
 		
 		paused = false;
 		buttons = new ArrayList<Button>();
 		for(int i = 0; i < 3; i++)
 		{
 			Button b = new Button("images/button.png", manager.getLoader());
-			b.worldPos.x = Display.getWidth()/2;
-			b.worldPos.y = Display.getHeight()/3 + i * b.height()/.8;
+			b.pos.x = Display.getWidth()/2;
+			b.pos.y = Display.getHeight()/3 + i * b.height()/.8;
 			buttons.add(b);
 		}
 		
@@ -270,7 +265,6 @@ public class Main
 		glLoadIdentity();
 		Display.sync(120);
 		
-		//TextureImpl.bindNone();
 		int x = Display.getWidth()/2 - font.getWidth("Paused")/2;
 		int y = 5 + font.getHeight("Paused");
 		font.drawString(x, y, "Paused");
@@ -332,22 +326,21 @@ public class Main
 
 		if(Mouse.isButtonDown(0) && shotTimer >= 3e8 && player.alive)
 		{
-			double sin = Math.sin(Math.toRadians(player.worldAngle) - Math.PI/2); // turn 90 degrees (pi/2) to look at mouse
-			double cos = Math.cos(Math.toRadians(player.worldAngle) - Math.PI/2);
+			double sin = Math.sin(Math.toRadians(player.angle) - Math.PI/2); // turn 90 degrees (pi/2) to look at mouse
+			double cos = Math.cos(Math.toRadians(player.angle) - Math.PI/2);
 			for(int i = -1; i < 2; i++) // translate bullet left and right of center according to player angle to give 3 bullet spray effect
 			{
 				Sprite s = new Sprite(camera);
 				s.name = "player_bullet";
-				s.worldPos = new Point(player.worldPos.x + Math.cos(Math.toRadians(player.worldAngle)) * i * 13, player.worldPos.y + Math.sin(Math.toRadians(player.worldAngle)) * i * 13);
+				s.pos = new Vector2d(player.pos.x + Math.cos(Math.toRadians(player.angle)) * i * 13, player.pos.y + Math.sin(Math.toRadians(player.angle)) * i * 13);
 				s.friction = 0;
 				s.vel.y = sin*1300 + player.vel.y;
 				s.vel.x = cos*1300 + player.vel.x;
-				s.worldAngle = player.worldAngle;
-				s.hitBox = new Rectangle((int)s.worldPos.x, (int)s.worldPos.y, 3, 32);
-				//s.hitBox.setBounds((int)s.worldPos.x, (int)s.worldPos.y, 3, 32);
+				s.angle = player.angle;
+				s.hitBox = new Rectangle((int)s.pos.x, (int)s.pos.y, 3, 32);
 				s.load("images/bullet.png", manager.getLoader());
-				s.deathTrigger.add("enemy");
-				s.deathTrigger.add("enemy_bullet");
+				s.damageTrigger.add("enemy");
+				s.damageTrigger.add("enemy_bullet");
 				manager.addSprite(s);
 			}
 			shotTimer = 0;
@@ -369,9 +362,9 @@ public class Main
 		int y = 10;
 		
 		font.drawString(x, y, "FPS: " + fps);
-		font.drawString(x, y+=15, "Player World Position: (" + f.format(player.worldPos.x) + ", " + f.format(player.worldPos.y) + ")");
+		font.drawString(x, y+=15, "Player World Position: (" + f.format(player.pos.x) + ", " + f.format(player.pos.y) + ")");
 		font.drawString(x, y+=15, "Player Screen Position: (" + f.format(player.screenPos.x) + ", " + f.format(player.screenPos.y) + ")");
-		font.drawString(x, y+=15, "Player World Angle: (" + f.format(player.worldAngle) + ")");
+		font.drawString(x, y+=15, "Player World Angle: (" + f.format(player.angle) + ")");
 		font.drawString(x, y+=15, "Mouse Position: (" + f.format(Mouse.getX()) + ", " + f.format(Mouse.getY() * -1 + Display.getHeight()) +")");
 		font.drawString(x, y+=15, "Shot Timer: (" + f.format(shotTimer) + ")");
 		x = Display.getWidth()/2 - font.getWidth(Integer.toString(score))/2;
@@ -383,7 +376,7 @@ public class Main
 	public void updateSprites()
 	{
 		manager.updateSprites(deltaTime);
-		spawnEnemies();
+		//spawnEnemies();
 	}
 	
 	public void spawnEnemies()
@@ -397,12 +390,12 @@ public class Main
 			Square e1 = new Square(camera, manager.getLoader());
 			if(Math.round(Math.random()) == 0)
 			{
-				e1.worldPos = new Point(arena.hitBox.getWidth() + 32, arena.hitBox.getHeight()*2/3 + 50);
+				e1.pos = new Vector2d(arena.hitBox.getWidth() + 32, arena.hitBox.getHeight()*2/3 + 50);
 				e1.vel.x = -100;
 			}
 			else
 			{
-				e1.worldPos = new Point(-32, arena.hitBox.getHeight()*2/3 + 18);
+				e1.pos = new Vector2d(-32, arena.hitBox.getHeight()*2/3 + 18);
 				e1.vel.x = 100;
 			}
 			manager.addSprite(e1);
@@ -410,12 +403,12 @@ public class Main
 			Square e2 = new Square(camera, manager.getLoader());
 			if(Math.round(Math.random()) == 0)
 			{
-				e2.worldPos = new Point(arena.hitBox.getWidth() + 32, arena.hitBox.getHeight() / 3 - 18);
+				e2.pos = new Vector2d(arena.hitBox.getWidth() + 32, arena.hitBox.getHeight() / 3 - 18);
 				e2.vel.x = -100;
 			}
 			else
 			{
-				e2.worldPos = new Point(-32, arena.hitBox.getHeight()/3 - 50);
+				e2.pos = new Vector2d(-32, arena.hitBox.getHeight()/3 - 50);
 				e2.vel.x = 100;
 			}
 			manager.addSprite(e2);
@@ -426,8 +419,8 @@ public class Main
 	
 	public void updateCamera()
 	{
-		camera.worldPos.x = (player.worldPos.x - Display.getWidth() / 2);
-		camera.worldPos.y = (player.worldPos.y - Display.getHeight() / 2);
+		camera.pos.x = (player.pos.x - Display.getWidth() / 2);
+		camera.pos.y = (player.pos.y - Display.getHeight() / 2);
 	}
 	
 	public FloatBuffer reserveData(int size)

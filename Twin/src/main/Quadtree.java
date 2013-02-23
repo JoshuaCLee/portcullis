@@ -128,7 +128,8 @@ public class Quadtree
 			}
 		}
 	}
-
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public List retrieve(List returnObjects, Entity e)
 	{
 		int index = getIndex(e.hitBox);

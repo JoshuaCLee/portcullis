@@ -1,0 +1,209 @@
+package main;
+
+import java.util.ArrayList;
+import java.util.Stack;
+
+//import org.lwjgl.util.Rectangle;
+import org.newdawn.slick.geom.GeomUtil;
+import org.newdawn.slick.geom.Rectangle;
+import org.newdawn.slick.geom.Shape;
+import org.newdawn.slick.geom.Vector2f;
+/**
+ * An object with an arbitrary position and various physics properties as well as collision detection
+ */
+public class Entity 
+{
+	protected Vector2d pos;       // r
+	protected Vector2d vel;       // v
+	protected Vector2d accel;     // a
+	protected Vector2d netForce;  // F
+	protected double mass;        // M
+	protected Stack<Force> grossForce; // we'll stack all acting forces and work out how they affect the sprite
+	
+	protected double thrust;
+	protected double friction;
+	
+	protected double angle;           // Ω or θ
+	protected double z;
+	protected double angleVel;        // ω
+	protected double angleAccel;      // α
+	protected double torque;          // τ pretty much just angular force
+	protected double momentOfInertia; // I
+	protected double elasticity;      // e
+	
+	protected Rectangle hitBox; // our geometry object we use to detect collisions
+	protected Shape shape;
+	
+	protected String name;
+	
+	protected double timeResolution;
+	
+	public Entity()
+	{
+		pos = new Vector2d(0, 0);
+		z = 1;
+		vel = new Vector2d(0, 0);
+		accel = new Vector2d(0, 0);
+		netForce = new Vector2d(0, 0);
+		mass = 2;
+		grossForce = new Stack<Force>();
+		thrust = 800;
+		friction = 3;
+		
+		timeResolution = ONE_SECOND;
+		
+		angle = 0;
+		angleVel = 0.0;
+		angleAccel = 0;
+		torque = 0;
+		momentOfInertia = 0;
+		elasticity = 0.5;
+		
+		hitBox = new Rectangle(0, 0, 0, 0);
+		//hitBox.
+		
+		name = "generic";
+	}
+	
+	public void update(double deltaTime)
+	{
+		deltaTime /= timeResolution;
+		
+		// safeguard values
+		if(friction < 0)
+			friction = 0;
+		if(mass <= 0)
+			mass = (float) 0.1;
+		if(thrust < 100)
+			thrust = 100;
+		
+		// update force
+		while(!grossForce.isEmpty())
+		{
+			Force f = grossForce.peek();
+			if(!(f.position.x < 0) && !(f.position.y < 0))
+				torque += f.position.cross(f.energy);
+			netForce.x += f.energy.x;
+			netForce.y += f.energy.y;
+			grossForce.pop();
+		}
+		
+		netForce.x -= (vel.x * friction);
+		netForce.y -= (vel.y * friction);
+		momentOfInertia = mass * ((32 * 32 + 32 * 32) / 12); // width * width + height * height
+		torque -= angleVel * friction * 200;
+		
+		// update acceleration
+		accel.x = (netForce.x / mass); // acceleration is force divided by mass
+		accel.y = (netForce.y / mass);
+		angleAccel = (torque / momentOfInertia);
+		
+		// reset force
+		netForce.x = 0;
+		netForce.y = 0;
+		torque = 0;
+		
+		// update velocity
+		vel.x = (accel.x * deltaTime) + vel.x;
+		vel.y = (accel.y * deltaTime) + vel.y;
+		angleVel = (angleAccel * deltaTime) + angleVel;
+		
+		// resolve collisions
+		resolveCollisions();
+		
+		// update position
+		pos.x = (deltaTime * vel.x) + pos.x;
+		pos.y = (deltaTime * vel.y) + pos.y;
+		angle = (angleVel * deltaTime) + angle;
+		
+		if(angle >= 360)
+			angle -= 360;
+		else if(angle < 0)
+			angle += 360;
+		
+		// update hitbox
+		if(hitBox != null)
+			hitBox.setLocation((int)pos.x - hitBox.getWidth()/2, (int)pos.y - hitBox.getHeight()/2);
+		/*
+		if(!screenLocked)
+		{	
+			screenPos.x = worldPos.x - camera.worldPos.x;
+			screenPos.y = worldPos.y - camera.worldPos.y;
+		}
+		else
+		{
+			screenPos.x = worldPos.x;
+			screenPos.y = worldPos.y;
+		}
+		
+		if(screenWrapped)
+		{
+			if(screenPos.x < 0 - frameWidth)
+				worldPos.x = frame.getWidth();
+			else if(screenPos.x > frame.getWidth())
+				worldPos.x = 0 - frameWidth;
+			
+			if(screenPos.y < 0 - frameHeight)
+				worldPos.y = frame.getHeight();	
+			else if(screenPos.y > frame.getHeight())
+				worldPos.y = 0 - frameHeight;	
+		}
+		*/
+	}
+	
+	private void resolveCollisions()
+	{
+		ArrayList<Entity> collisions = SpriteManager.getInstance().checkCollisions(this);
+		for(int i = 0; i < collisions.size(); i++)
+		{
+			// brute force check for the point of collision because whatever
+			Entity b = collisions.get(i);
+			Vector2d p = new Vector2d(0, 0);
+			int bIndex = 0;
+			relativePoint(hitBox, collisions.get(i).hitBox, p, bIndex);
+			if(p != null)
+			{
+				Vector2d relDisA = pos.vectorDistance(p).perpendicular();
+				Vector2d relVelA = new Vector2d(vel.x + relDisA.x * angleVel, vel.y + relDisA.y * angleVel);
+				
+				Vector2d relDisB = b.pos.vectorDistance(p).perpendicular();
+				Vector2d relVelB = new Vector2d(b.vel.x + relDisB.x * b.angleVel, b.vel.y + relDisB.y * b.angleVel);
+				
+				Vector2d relVel = new Vector2d(relVelA.x - relVelB.x, relVelA.y - relVelB.y);
+				Vector2d normal = new Vector2d(b.hitBox.getNormal(bIndex)[0], b.hitBox.getNormal(bIndex)[1]);
+				//System.out.println(p.toString());
+				//
+				double j = (-(1 + elasticity) * relVel.dot(normal))
+						/ (relDisB.dot(relDisB) * (1/mass + 1/b.mass) 
+								+ (Math.pow(relDisA.cross(normal), 2) / momentOfInertia) 
+								+ (Math.pow(relDisB.cross(normal), 2) / b.momentOfInertia));
+				//System.out.println(j);
+				// j is positive for body A (this sprite) and negative for body B
+				vel.x += (j * normal.x) / mass;
+				vel.y += (j * normal.y) / mass;
+				angleVel += relDisA.dot(new Vector2d(normal.x * j, normal.y * j)) / momentOfInertia;
+				
+				b.vel.x += (-j * normal.x) / b.mass;
+				b.vel.y += (-j * normal.y) / b.mass;
+				angleVel += relDisB.dot(new Vector2d(normal.x * -j, normal.y * -j)) / b.momentOfInertia;
+			}
+		}
+	}
+	
+	private void relativePoint(Rectangle r1, Rectangle r2, Vector2d p, int bIndex) // FIXME: doesn't return any point
+	{
+		GeomUtil util = new GeomUtil();
+		Vector2f v = util.intersect(r1, util.getLine(r2, 0, 1)).pt;
+		p = new Vector2d(v.x, v.y);
+		bIndex = 0;
+	}
+	
+	public String toString()
+	{
+		return name;
+	}
+	
+	// times represented in nanoseconds
+	protected final long ONE_SECOND =      (long)1e9;
+	protected final long ONE_MILLISECOND = (long)1e6;
+}

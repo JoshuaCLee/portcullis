@@ -1,5 +1,6 @@
 package main;
 
+import java.util.List;
 import java.util.ArrayList;
 
 import org.lwjgl.input.Keyboard;
@@ -25,7 +26,7 @@ public class SpriteManager
 		arena = new Sprite(camera);
 		arena.hitBox = new Rectangle(0 ,0, 2000, 2000);
 		//arena.hitBox.setBounds(0, 0, 2000, 2000);
-		arena.worldPos = new Point(arena.hitBox.getWidth()/2, arena.hitBox.getHeight()/2);
+		arena.pos = new Vector2d(arena.hitBox.getWidth()/2, arena.hitBox.getHeight()/2);
 		arena.isMeshDrawn = true;
 		sprites = new ArrayList<Sprite>();
 		quad = new Quadtree(1, camera.hitBox);
@@ -37,7 +38,6 @@ public class SpriteManager
 		if(manager == null)
 			manager = new SpriteManager();
 		return manager;
-			
 	}
 	
 	public void newSprite()
@@ -80,12 +80,12 @@ public class SpriteManager
 				sprites.remove(i);
 				i--;
 			}
-			else if(sprites.get(i).worldPos.x < 0 - sprites.get(i).width())
+			else if(sprites.get(i).pos.x < 0 - sprites.get(i).width())
 			{
 				if(sprites.get(i).name.equals("player"))
 				{	
 					sprites.get(i).draw(deltaTime);
-					sprites.get(i).worldPos.x = 0 - sprites.get(i).width();
+					sprites.get(i).pos.x = 0 - sprites.get(i).width();
 				}	
 				else
 				{	
@@ -93,12 +93,12 @@ public class SpriteManager
 					i++;
 				}
 			}
-			else if(sprites.get(i).worldPos.x > arena.hitBox.getWidth() + sprites.get(i).width())
+			else if(sprites.get(i).pos.x > arena.hitBox.getWidth() + sprites.get(i).width())
 			{
 				if(sprites.get(i).name.equals("player"))
 				{	
 					sprites.get(i).draw(deltaTime);
-					sprites.get(i).worldPos.x = arena.hitBox.getWidth() + sprites.get(i).width();
+					sprites.get(i).pos.x = arena.hitBox.getWidth() + sprites.get(i).width();
 				}
 				else
 				{
@@ -106,12 +106,12 @@ public class SpriteManager
 					i--;
 				}
 			}
-			else if(sprites.get(i).worldPos.y < 0 - sprites.get(i).height())
+			else if(sprites.get(i).pos.y < 0 - sprites.get(i).height())
 			{
 				if(sprites.get(i).name.equals("player"))
 				{
 					sprites.get(i).draw(deltaTime);
-					sprites.get(i).worldPos.y = 0 - sprites.get(i).height();
+					sprites.get(i).pos.y = 0 - sprites.get(i).height();
 				}
 				else
 				{
@@ -119,12 +119,12 @@ public class SpriteManager
 					i--;
 				}
 			}
-			else if(sprites.get(i).worldPos.y > arena.hitBox.getHeight() + sprites.get(i).height())
+			else if(sprites.get(i).pos.y > arena.hitBox.getHeight() + sprites.get(i).height())
 			{
 				if(sprites.get(i).name.equals("player"))
 				{
 					sprites.get(i).draw(deltaTime);
-					sprites.get(i).worldPos.y = arena.hitBox.getHeight() + sprites.get(i).height();
+					sprites.get(i).pos.y = arena.hitBox.getHeight() + sprites.get(i).height();
 				}
 				else
 				{
@@ -140,23 +140,23 @@ public class SpriteManager
 		arena.draw(deltaTime);
 	}
 	
-	private void checkCollisions(Sprite sprite)
+	public ArrayList<Entity> checkCollisions(Entity entity)
 	{
-		ArrayList<Sprite> returnObjects = new ArrayList<Sprite>();
+		ArrayList<Entity> returnObjects = new ArrayList<Entity>();
+		ArrayList<Entity> collisions = new ArrayList<Entity>();
 
 		returnObjects.clear();
-		quad.retrieve(returnObjects, sprite);
+		quad.retrieve(returnObjects, entity);
 
 		for (int k = 0; k < returnObjects.size(); k++) 
 		{
 			// Run collision detection algorithm between objects
-			if(sprite.hitBox.intersects(returnObjects.get(k).hitBox))
+			if(entity.hitBox.intersects(returnObjects.get(k).hitBox) && !entity.equals(returnObjects.get(k)))
 			{
-				
-				sprite.collision(returnObjects.get(k).name); // exchange info
-				returnObjects.get(k).collision(sprite.name);
+				collisions.add(returnObjects.get(k));
 			}
 		}
+		return collisions;
 
 	}
 	

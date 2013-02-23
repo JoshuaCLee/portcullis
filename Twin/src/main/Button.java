@@ -38,8 +38,8 @@ public class Button extends Entity
 			glLoadIdentity();
 			glPushMatrix();
 			
-			glTranslated(worldPos.x, worldPos.y, 0);
-			glRotated(worldAngle, 0, 0, 1);
+			glTranslated(pos.x, pos.y, 0);
+			glRotated(angle, 0, 0, 1);
 			glTranslated(-width()/2, -height()/2, 0);
 			//glColor3f(0.5f,0.5f,1.0f);
 			texture.bind();

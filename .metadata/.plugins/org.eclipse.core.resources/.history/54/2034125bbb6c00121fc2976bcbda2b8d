@@ -1,0 +1,45 @@
+package main;
+
+import java.util.ArrayList;
+
+public class Rectangle 
+{
+	private double x, y;
+	private ArrayList<Vector2d> points;
+	private double width, height;
+	private double angle;
+	
+	public Rectangle()
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = 0;
+		this.height = 0;
+	}
+	
+	public Rectangle(double width, double height)
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = width;
+		this.height = height;
+	}
+	
+	public Rectangle(double x, double y, double width, double height)
+	{
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	}
+	
+	private void createPoints()
+	{
+		
+	}
+	
+	public ArrayList<Line> getLines()
+	{
+		
+	}
+}

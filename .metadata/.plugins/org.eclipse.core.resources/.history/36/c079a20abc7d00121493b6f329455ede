@@ -1,0 +1,162 @@
+package main;
+
+import java.util.ArrayList;
+/**
+ * A geometric container that also handles collision detection
+ */
+public class Rectangle 
+{
+	private double x, y;
+	private ArrayList<Vector2d> vertices; // clockwise elements
+	private double width, height;
+	private double angle;
+	
+	public Rectangle()
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = 0;
+		this.height = 0;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+	}
+	
+	public Rectangle(double width, double height)
+	{
+		this.x = 0;
+		this.y = 0;
+		this.width = width;
+		this.height = height;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+		createVertices();
+	}
+	
+	public Rectangle(double x, double y, double width, double height)
+	{
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		angle = 0;
+		vertices = new ArrayList<Vector2d>();
+		createVertices();
+	}
+	
+	//public Vector2d collide(Rectangle b)
+	{
+		//ArrayList<Vector2d> aAxes = getEdgeNormals();
+		//ArrayList<Vector2d> bAxes = b.getEdgeNormals();
+		
+		//for(int i = 0; i < aAxes.size(); i++)
+		{
+			
+		}
+	}
+	
+	public ArrayList<Vector2d> getEdgeNormals()
+	{
+		ArrayList<Line> edges = getEdges();
+		ArrayList<Vector2d> normals = new ArrayList<Vector2d>();
+		for(int i = 0; i < edges.size(); i++)
+		{
+			double x = edges.get(i).getPoint1().x - edges.get(i).getPoint2().x;
+			double y = edges.get(i).getPoint1().y - edges.get(i).getPoint2().y;
+			normals.add(new Vector2d(x, y).normalize().getRightNormal());
+		}
+		return normals;
+	}
+	
+	public Vector2d project(Vector2d axis)
+	{
+		double min = axis.dot(vertices.get(0));
+		double max = min;
+		for(int i = 0; i < vertices.size(); i++)
+		{
+			double p = axis.dot(vertices.get(i));
+			if(p < min)
+				min = p;
+			else if(p > max)
+				max = p;
+		}
+		return new Vector2d(min, max);
+	}
+	
+	public void createVertices()
+	{
+		vertices.clear();
+		if(angle >= 360)
+			angle %= 360;
+		else if(angle < 0)
+			angle = (angle % 360) + 360;
+		double cos = Math.cos(Math.toRadians(angle));
+		double sin = Math.sin(Math.toRadians(angle));
+		
+		Vector2d v1 = new Vector2d(((-width/2) * cos + (-height/2) * sin) + x, 
+				                   ((width/2)  * sin + (-height/2) * cos) + y); // -width, -height
+		Vector2d v2 = new Vector2d(((width/2)  * cos + (-height/2) * sin) + x, 
+				                   ((-width/2) * sin + (-height/2) * cos) + y); // width, -height
+		Vector2d v3 = new Vector2d(((width/2)  * cos + (height/2)  * sin) + x, 
+				                   ((-width/2) * sin + (height/2)  * cos) + y); // width, height
+		Vector2d v4 = new Vector2d(((-width/2) * cos + (height/2)  * sin) + x, 
+				                   ((width/2)  * sin + (height/2)  * cos) + y); // -width, height
+		vertices.add(v1);
+		vertices.add(v2);
+		vertices.add(v3);
+		vertices.add(v4);
+	}
+	
+	public ArrayList<Vector2d> getVertices()
+	{
+		createVertices();
+		return vertices;
+	}
+	
+	public ArrayList<Line> getEdges()
+	{
+		createVertices();
+		ArrayList<Line> lines = new ArrayList<Line>();
+		for(int i = 0; i < vertices.size(); i++)
+		{
+			if(i == vertices.size() - 1)
+				lines.add(new Line(vertices.get(i), vertices.get(0)));
+			else
+				lines.add(new Line(vertices.get(i), vertices.get(i+1)));
+		}
+		return lines;
+	}
+	
+	public double getAngle()
+	{
+		return angle;
+	}
+	
+	public double getX()
+	{
+		return x;
+	}
+	
+	public double getY()
+	{
+		return y;
+	}
+	
+	public void setLocation(double x, double y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setAngle(double angle)
+	{
+		this.angle = angle;
+	}
+	
+	public String toString()
+	{
+		String str = "Pos: (" + x + ", " + y + ") ";
+		for(int i = 0; i < vertices.size(); i++)
+			str += "V" + i + ": " + vertices.get(i).toString() + " ";
+		return str;
+	}
+}
