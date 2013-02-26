@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Rename local variable &apos;min&apos; in &apos;main.Rectangle.intersect(...)&apos; to &apos;collisionNormal&apos;&#x0D;&#x0A;- Original project: &apos;Twin&apos;&#x0D;&#x0A;- Original element: &apos;main.Rectangle.intersect(Rectangle).min&apos;&#x0D;&#x0A;- Renamed element: &apos;min&apos;&#x0D;&#x0A;- Update references to refactored element" description="Rename local variable &apos;min&apos;" id="org.eclipse.jdt.ui.rename.local.variable" input="/src&lt;main{Rectangle.java[Rectangle~intersect~QRectangle;@min!1703!1722!1712!1714!QVector2d;!0!false" name="collisionNormal" references="true" stamp="1361918299538" version="1.0"/>
-</session>
