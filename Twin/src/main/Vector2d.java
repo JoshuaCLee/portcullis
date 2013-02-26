@@ -1,5 +1,22 @@
 package main;
 
+import static org.lwjgl.opengl.GL11.GL_FILL;
+import static org.lwjgl.opengl.GL11.GL_FRONT;
+import static org.lwjgl.opengl.GL11.GL_LINE;
+import static org.lwjgl.opengl.GL11.GL_MODELVIEW;
+import static org.lwjgl.opengl.GL11.GL_QUADS;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.glBegin;
+import static org.lwjgl.opengl.GL11.glBindTexture;
+import static org.lwjgl.opengl.GL11.glColor3f;
+import static org.lwjgl.opengl.GL11.glEnd;
+import static org.lwjgl.opengl.GL11.glLoadIdentity;
+import static org.lwjgl.opengl.GL11.glMatrixMode;
+import static org.lwjgl.opengl.GL11.glPolygonMode;
+import static org.lwjgl.opengl.GL11.glPopMatrix;
+import static org.lwjgl.opengl.GL11.glPushMatrix;
+import static org.lwjgl.opengl.GL11.glVertex2d;
+
 public class Vector2d 
 {
 	protected double x;
@@ -65,6 +82,24 @@ public class Vector2d
 	public double getY()
 	{
 		return y;
+	}
+	
+	public void draw()
+	{
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glPushMatrix();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glPolygonMode(GL_FRONT, GL_LINE);
+		glColor3f(0.1f, 0.1f, 30);
+		glBegin(GL_QUADS);
+			glVertex2d(x - 2, y - 2); // upper-left
+			glVertex2d(x + 2, y - 2); // upper-right
+			glVertex2d(x + 2, y + 2); // bottom-right
+			glVertex2d(x - 2, y + 2); // bottom-left
+		glEnd();
+		glPolygonMode(GL_FRONT, GL_FILL);
+		glPopMatrix();
 	}
 	
 	public boolean equals(Vector2d other)

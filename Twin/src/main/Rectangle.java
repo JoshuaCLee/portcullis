@@ -70,7 +70,7 @@ public class Rectangle
 	public Vector2d intersect(Rectangle b) 
 	{
 		double overlap = Double.MAX_VALUE; // depth
-		Vector2d min = null; // minimum penetration vector or collision normal
+		Vector2d collisionNormal = null; // minimum penetration vector or collision normal
 		ArrayList<Vector2d> aAxes = getEdgeNormals();
 		ArrayList<Vector2d> bAxes = b.getEdgeNormals();
 		
@@ -86,7 +86,7 @@ public class Rectangle
 				if(o < overlap)
 				{
 					overlap = o;
-					min = aAxes.get(i);
+					collisionNormal = aAxes.get(i);
 				}
 			}
 		}
@@ -103,59 +103,73 @@ public class Rectangle
 				if(o < overlap)
 				{
 					overlap = o;
-					min = bAxes.get(i);
+					collisionNormal = bAxes.get(i);
 				}
 			}
 		}
 		// collision normal and penetration depth has been found
 		// now we find the most perpendicular edges to the collision normal
-		Line aEdge = bestEdge(min);
-		Line bEdge = b.bestEdge(new Vector2d(-min.x, -min.y));
+		Line aEdge = bestEdge(collisionNormal);
+		Line bEdge = b.bestEdge(new Vector2d(-collisionNormal.x, -collisionNormal.y));
 		// determine reference and incident edges
 		Line reference, incident;
-		Vector2d refNormalized;
+		Vector2d ref;
 		boolean flipped = false;
-		if(aEdge.toVector2d().dot(min) <= bEdge.toVector2d().dot(min))
+		if(aEdge.toVector2d().dot(collisionNormal) <= bEdge.toVector2d().dot(collisionNormal))
 		{
 			reference = aEdge;
 			incident = bEdge;
-			refNormalized = reference.toVector2d().normalize();
 		}
 		else
 		{
 			reference = bEdge;
 			incident = aEdge;
-			refNormalized = reference.toVector2d().normalize();
 			flipped = true;
 		}
+		ref = reference.toVector2d().normalize();
 		
-		double offset1 = refNormalized.dot(reference.getPoint1());
-		ArrayList<Vector2d> clipPoints = clip(incident.getPoint1(), incident.getPoint2(), refNormalized, offset1);
+		double offset1 = ref.dot(reference.getPoint1());
+		ArrayList<Vector2d> clipPoints = clip(incident.getPoint1(), incident.getPoint2(), new Vector2d(-ref.x, -ref.y), -offset1);
 		if(clipPoints.size() < 2)
 			return null;
 		System.out.println("clip1 success");
 		
-		double offset2 = refNormalized.dot(reference.getPoint2());
-		clipPoints = clip(clipPoints.get(0), clipPoints.get(1), new Vector2d(-refNormalized.x, -refNormalized.y), offset2);
+		double offset2 = ref.dot(reference.getPoint2());
+		clipPoints = clip(clipPoints.get(0), clipPoints.get(1), ref, offset2);
 		if(clipPoints.size() < 2)
 			return null;
 		System.out.println("clip2 success");
 		
-		Vector2d refNormal = refNormalized.getRightNormal();
+		Vector2d refNormal = ref.getLeftNormal();
 		if(flipped)
 			refNormal = new Vector2d(refNormal.x * -1, refNormal.y * -1);
 		double max = refNormal.dot(reference.getPoint1());
-		if (refNormal.dot(clipPoints.get(0)) - max < 0.0) 
+		if (refNormal.dot(clipPoints.get(0)) - max < 0.0)
+		{	
 			clipPoints.remove(clipPoints.get(0));
-		if (refNormal.dot(clipPoints.get(1)) - max < 0.0) 
-			clipPoints.remove(clipPoints.get(1));
-		return clipPoints.get(0);
+			if(!clipPoints.isEmpty())
+				if (refNormal.dot(clipPoints.get(0)) - max < 0.0) 
+					clipPoints.remove(clipPoints.get(0));
+		}
+		if(!clipPoints.isEmpty())
+		{
+			Vector2d collision = new Vector2d(0, 0);
+			for(int i = 0; i < clipPoints.size(); i++)
+			{
+				collision = new Vector2d(collision.x + clipPoints.get(i).x, collision.y + clipPoints.get(i).y);
+			}
+			collision = new Vector2d(collision.x / clipPoints.size(), collision.y / clipPoints.size());
+			return collision;
+		}
+		else
+			return null;
 	}
 	
-	public Line bestEdge(Vector2d collisionNormal)
+	public Line bestEdge(Vector2d collisionNormal) // FIXME
 	{
 		double max = -Double.MAX_VALUE;
 		int index = -1;
+		System.out.println(collisionNormal);
 		for(int i = 0; i < vertices.size(); i++)
 		{
 			double projection = collisionNormal.dot(vertices.get(i));
@@ -180,10 +194,21 @@ public class Rectangle
 		
 		Vector2d left = new Vector2d(v.x - v1.x, v.y - v1.y);
 		Vector2d right = new Vector2d(v.x - v0.x, v.y - v0.y);
-		if(right.dot(collisionNormal) <= left.dot(collisionNormal))
+		System.out.println("right: " + right + " left: " + left);
+		if(Math.abs(right.dot(collisionNormal)) <= Math.abs(left.dot(collisionNormal)))
+		{
+			//System.out.println("return right");
+			v0.draw();
+			v.draw();
 			return new Line(v0, v);
+		}
 		else
+		{
+			//System.out.println("return left");
+			v.draw();
+			v1.draw();
 			return new Line(v, v1);
+		}
 	}
 	
 	public ArrayList<Vector2d> clip(Vector2d v1, Vector2d v2, Vector2d reference, double o)
@@ -191,7 +216,7 @@ public class Rectangle
 		ArrayList<Vector2d> clipPoints = new ArrayList<Vector2d>();
 		double d1 = reference.dot(v1) - o;
 		double d2 = reference.dot(v2) - o;
-		System.out.println("offset: " + o);
+		//System.out.println("d1: " + d1 + " d2: " + d2 + " v1: " + v1 + " v2: " + v2 + " ref: " + reference + " offset: " + o);
 		
 		if(d1 >= 0)
 			clipPoints.add(v1);
@@ -216,7 +241,7 @@ public class Rectangle
 		{
 			double x = edges.get(i).getPoint1().x - edges.get(i).getPoint2().x;
 			double y = edges.get(i).getPoint1().y - edges.get(i).getPoint2().y;
-			normals.add(new Vector2d(x, y).normalize().getRightNormal());
+			normals.add(new Vector2d(x, y).normalize().getLeftNormal());
 		}
 		return normals;
 	}
